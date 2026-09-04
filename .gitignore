@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+.env
+.venv
+env/
+venv/
+*.db
+backend/alembic/versions/*
+
+# Node / NextJS
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+*.log
+
+# Project
+sample-data/
+*.pcap
+.vscode/
+.idea/
