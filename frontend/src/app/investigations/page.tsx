@@ -1,18 +1,38 @@
 'use client';
 
-import { Search, Filter, AlertTriangle, Play, CheckCircle2, XCircle } from 'lucide-react';
+import { Search, Filter, AlertTriangle, Play, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
-import { useState } from 'react';
-
-const mockInvestigations = [
-  { id: 'INV-2026-001', title: 'Suspicious Lateral Movement via SMB', status: 'Active', severity: 'Critical', created: '15 mins ago', owner: 'Operator One' },
-  { id: 'INV-2026-002', title: 'Multiple Failed SSH Authentication', status: 'Closed', severity: 'Medium', created: '2 hrs ago', owner: 'Auto-Trigger' },
-  { id: 'INV-2026-003', title: 'Data Exfiltration via DNS Tunneling', status: 'Active', severity: 'High', created: '5 hrs ago', owner: 'Analyst Two' },
-  { id: 'INV-2026-004', title: 'Unexpected Nmap Scan from DMZ', status: 'Pending', severity: 'Low', created: '1 day ago', owner: 'Auto-Trigger' },
-];
+import { useState, useEffect } from 'react';
 
 export default function InvestigationsPage() {
   const [searchTerm, setSearchTerm] = useState('');
+  const [investigations, setInvestigations] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchInvestigations = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const res = await fetch('http://127.0.0.1:8000/api/v1/investigations');
+      if (!res.ok) throw new Error('Failed to fetch investigations');
+      const data = await res.json();
+      setInvestigations(data);
+    } catch (err: any) {
+      setError(err.message || 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchInvestigations();
+  }, []);
+
+  const filtered = investigations.filter((inv: any) => 
+    (inv.investigation_number?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (inv.title?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <div className="space-y-6 animate-slide-in">
@@ -28,7 +48,7 @@ export default function InvestigationsPage() {
 
       <div className="glass-panel p-4 rounded-xl border border-slate-700/50 flex flex-col sm:flex-row gap-4 items-center">
         <div className="flex-1 w-full relative">
-          <Search className="absolute left-3 top-1.25 bottom-0 my-auto h-5 w-5 text-slate-500" />
+          <Search className="absolute left-3 top-2.5 h-5 w-5 text-slate-500" />
           <input 
             type="text" 
             placeholder="Search by ID, title, or attribute..." 
@@ -43,70 +63,95 @@ export default function InvestigationsPage() {
         </button>
       </div>
 
-      <div className="glass-panel rounded-xl border border-slate-700/50 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-900/50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-800">
-              <tr>
-                <th className="px-6 py-4">Case ID / Title</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4">Severity</th>
-                <th className="px-6 py-4">Owner</th>
-                <th className="px-6 py-4">Created Time</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800">
-              {mockInvestigations.map((inv) => (
-                <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
-                  <td className="px-6 py-4">
-                    <div className="font-medium text-slate-200 mb-1">{inv.id}</div>
-                    <div className="text-slate-400 text-xs">{inv.title}</div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
-                      inv.status === 'Active' ? 'bg-blue-500/10 text-[#38bdf8] border-[#38bdf8]/20' :
-                      inv.status === 'Closed' ? 'bg-green-500/10 text-emerald-400 border-emerald-500/20' :
-                      'bg-slate-500/10 text-slate-300 border-slate-500/20'
-                    }`}>
-                      {inv.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      {inv.severity === 'Critical' && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                      {inv.severity === 'High' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
-                      <span className={`
-                        ${inv.severity === 'Critical' ? 'text-red-400' : ''}
-                        ${inv.severity === 'High' ? 'text-orange-400' : ''}
-                        ${inv.severity === 'Medium' ? 'text-yellow-400' : ''}
-                        ${inv.severity === 'Low' ? 'text-blue-400' : ''}
-                      `}>{inv.severity}</span>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">{inv.owner}</td>
-                  <td className="px-6 py-4">{inv.created}</td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button className="text-slate-400 hover:text-white" title="Analyze with AI">
-                        <Play className="w-4 h-4" />
-                      </button>
-                      <button className="text-slate-400 hover:text-emerald-400" title="Mark Resolved">
-                        <CheckCircle2 className="w-4 h-4" />
-                      </button>
-                      <Link 
-                        href={`/investigations/${inv.id.replace('INV-', '').toLowerCase()}`} 
-                        className="ml-2 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded border border-slate-700 text-slate-200"
-                      >
-                        View
-                      </Link>
-                    </div>
-                  </td>
+      <div className="glass-panel rounded-xl border border-slate-700/50 overflow-hidden min-h-[300px]">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center p-12 text-slate-400">
+            <RefreshCw className="w-8 h-8 animate-spin text-[#38bdf8] mb-4" />
+            <p>Loading investigations...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center justify-center p-12 text-slate-400 text-center">
+            <XCircle className="w-12 h-12 text-red-500 mb-4" />
+            <h3 className="text-lg font-bold text-white mb-2">Failed to load</h3>
+            <p className="mb-4">{error}</p>
+            <button onClick={fetchInvestigations} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg flex items-center transition-colors">
+              <RefreshCw className="w-4 h-4 mr-2" /> Retry
+            </button>
+          </div>
+        ) : investigations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-12 text-slate-400 text-center">
+            <CheckCircle2 className="w-12 h-12 text-emerald-500 mb-4" />
+            <h3 className="text-lg font-bold text-white mb-2">No active investigations</h3>
+            <p className="mb-4">Everything looks quiet. There are no investigations currently recorded.</p>
+            <button onClick={fetchInvestigations} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm rounded-lg flex items-center transition-colors">
+              <RefreshCw className="w-4 h-4 mr-2" /> Refresh
+            </button>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-slate-300">
+              <thead className="bg-slate-900/50 text-xs uppercase font-semibold text-slate-500 border-b border-slate-800">
+                <tr>
+                  <th className="px-6 py-4">Case ID / Title</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4">Severity</th>
+                  <th className="px-6 py-4">Confidence</th>
+                  <th className="px-6 py-4">Created Time</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-slate-800">
+                {filtered.map((inv: any) => (
+                  <tr key={inv.id} className="hover:bg-slate-800/30 transition-colors group">
+                    <td className="px-6 py-4">
+                      <div className="font-medium text-slate-200 mb-1">{inv.investigation_number || `INV-${inv.id}`}</div>
+                      <div className="text-slate-400 text-xs">{inv.title}</div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border ${
+                        inv.status === 'ACTIVE' || inv.status === 'Active' ? 'bg-blue-500/10 text-[#38bdf8] border-[#38bdf8]/20' :
+                        inv.status === 'CLOSED' || inv.status === 'Closed' ? 'bg-green-500/10 text-emerald-400 border-emerald-500/20' :
+                        'bg-slate-500/10 text-slate-300 border-slate-500/20'
+                      }`}>
+                        {inv.status || 'Active'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        {inv.severity === 'CRITICAL' && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                        {inv.severity === 'HIGH' && <AlertTriangle className="w-4 h-4 text-orange-500" />}
+                        <span className={`
+                          ${inv.severity === 'CRITICAL' ? 'text-red-400' : ''}
+                          ${inv.severity === 'HIGH' ? 'text-orange-400' : ''}
+                          ${inv.severity === 'MEDIUM' ? 'text-yellow-400' : ''}
+                          ${inv.severity === 'LOW' ? 'text-blue-400' : ''}
+                        `}>{inv.severity}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">{(inv.confidence * 100).toFixed(0)}%</td>
+                    <td className="px-6 py-4">{new Date(inv.created_at).toLocaleString()}</td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <button className="text-slate-400 hover:text-white" title="Analyze with AI">
+                          <Play className="w-4 h-4" />
+                        </button>
+                        <button className="text-slate-400 hover:text-emerald-400" title="Mark Resolved">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </button>
+                        <Link 
+                          href={`/investigations/${inv.id}`} 
+                          className="ml-2 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-xs rounded border border-slate-700 text-slate-200"
+                        >
+                          View
+                        </Link>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

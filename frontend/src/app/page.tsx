@@ -1,16 +1,17 @@
 'use client';
 
-import { Activity, AlertTriangle, ShieldAlert, Cpu, Network, Lock, Crosshair } from 'lucide-react';
+import { Activity, AlertTriangle, ShieldAlert, Cpu, Network, Lock, Crosshair, RefreshCw, XCircle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { useState, useEffect } from 'react';
 
 const mockChartData = [
-  { time: '00:00', alerts: 12, blocks: 45 },
-  { time: '04:00', alerts: 18, blocks: 32 },
-  { time: '08:00', alerts: 45, blocks: 112 },
-  { time: '12:00', alerts: 67, blocks: 154 },
-  { time: '16:00', alerts: 34, blocks: 89 },
-  { time: '20:00', alerts: 22, blocks: 65 },
-  { time: '24:00', alerts: 15, blocks: 41 },
+  { time: '00:00', alerts: 1, blocks: 4 },
+  { time: '04:00', alerts: 2, blocks: 3 },
+  { time: '08:00', alerts: 5, blocks: 11 },
+  { time: '12:00', alerts: 7, blocks: 15 },
+  { time: '16:00', alerts: 3, blocks: 8 },
+  { time: '20:00', alerts: 2, blocks: 6 },
+  { time: '24:00', alerts: 1, blocks: 4 },
 ];
 
 const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
@@ -26,7 +27,7 @@ const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
       </div>
     </div>
     <div className="flex items-center text-xs relative z-10">
-      <span className={trend > 0 ? 'text-green-400' : 'text-red-400'}>
+      <span className={trend > 0 ? 'text-green-400' : trend < 0 ? 'text-red-400' : 'text-slate-400'}>
         {trend > 0 ? '+' : ''}{trend}%
       </span>
       <span className="text-slate-500 ml-2">from last 24h</span>
@@ -35,6 +36,33 @@ const StatCard = ({ title, value, icon: Icon, color, trend }: any) => (
 );
 
 export default function Dashboard() {
+  const [healthStatus, setHealthStatus] = useState<any>(null);
+  const [metrics, setMetrics] = useState({ investigations: 0, indicators: 0 });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [health, invs, inds] = await Promise.all([
+        fetch('http://127.0.0.1:8000/api/v1/system-health').then(r => r.ok ? r.json() : null),
+        fetch('http://127.0.0.1:8000/api/v1/investigations').then(r => r.ok ? r.json() : []),
+        fetch('http://127.0.0.1:8000/api/v1/indicators').then(r => r.ok ? r.json() : [])
+      ]);
+      setHealthStatus(health);
+      setMetrics({ investigations: invs.length || 0, indicators: inds.length || 0 });
+    } catch (err: any) {
+      setError(err.message || 'Error syncing backend data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
   return (
     <div className="space-y-6 animate-slide-in">
       {/* Header */}
@@ -44,8 +72,8 @@ export default function Dashboard() {
           <p className="text-slate-400 text-sm">System status & active threat intelligence overview.</p>
         </div>
         <div className="flex gap-3">
-          <button className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-sm font-medium transition-colors">
-            Export Report
+          <button onClick={fetchDashboardData} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg text-sm font-medium transition-colors flex items-center">
+            <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Sync
           </button>
           <button className="px-4 py-2 bg-[#38bdf8]/10 hover:bg-[#38bdf8]/20 text-[#38bdf8] border border-[#38bdf8]/50 rounded-lg text-sm font-medium transition-all shadow-[0_0_10px_rgba(56,189,248,0.1)]">
             New Investigation
@@ -53,12 +81,19 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/20 text-red-400 p-4 rounded-lg flex items-center">
+          <XCircle className="w-5 h-5 mr-3" />
+          <span>{error}</span>
+        </div>
+      )}
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Active Investigations" value="14" icon={Activity} color="blue" trend={+12} />
-        <StatCard title="Critical Alerts" value="3" icon={AlertTriangle} color="red" trend={-5} />
-        <StatCard title="Indicators Tracked" value="12,403" icon={Crosshair} color="purple" trend={+8} />
-        <StatCard title="Auto-Blocked IPs" value="842" icon={ShieldAlert} color="emerald" trend={+24} />
+        <StatCard title="Active Investigations" value={loading ? '-' : metrics.investigations} icon={Activity} color="blue" trend={0} />
+        <StatCard title="Critical Alerts" value="0" icon={AlertTriangle} color="red" trend={0} />
+        <StatCard title="Indicators Tracked" value={loading ? '-' : metrics.indicators} icon={Crosshair} color="purple" trend={0} />
+        <StatCard title="Auto-Blocked IPs" value="0" icon={ShieldAlert} color="emerald" trend={0} />
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -66,7 +101,7 @@ export default function Dashboard() {
         <div className="xl:col-span-2 glass-panel p-5 rounded-xl border border-slate-700/50 flex flex-col">
           <div className="mb-4">
             <h2 className="text-lg font-semibold text-white">Network Anomaly Trend</h2>
-            <p className="text-xs text-slate-400">Total detected threats and mitigations over time</p>
+            <p className="text-xs text-slate-400">Total detected threats over time</p>
           </div>
           <div className="flex-1 min-h-[300px] w-full">
             <ResponsiveContainer width="100%" height="100%">
@@ -104,23 +139,23 @@ export default function Dashboard() {
           
           <div className="space-y-4">
             {[
-              { name: 'Ollama AI Engine', status: 'Online', icon: Cpu, latency: '45ms' },
-              { name: 'PCAP Analyzer', status: 'Processing', icon: Network, latency: '124ms' },
-              { name: 'Suricata IDS', status: 'Online', icon: ShieldAlert, latency: '12ms' },
-              { name: 'CTI Aggregator', status: 'Synced', icon: Lock, latency: '2s ago' },
+              { name: 'PostgreSQL DB', status: (healthStatus?.PostgreSQL) ? 'Online' : 'Offline', icon: Lock },
+              { name: 'Ollama AI Engine', status: (healthStatus?.Ollama) ? 'Online' : 'Offline', icon: Cpu },
+              { name: 'API Server', status: (healthStatus?.API) ? 'Online' : 'Loading', icon: Network },
+              { name: 'Suricata IDS', status: (healthStatus?.Suricata) ? 'Online' : 'Offline', icon: ShieldAlert },
+              { name: 'CTI Aggregator', status: (healthStatus?.VirusTotal || healthStatus?.OTX) ? 'Online' : 'Offline', icon: Activity },
             ].map((sys, idx) => (
               <div key={idx} className="flex justify-between items-center p-3 rounded-lg bg-slate-800/50 border border-slate-700 mt-2">
                 <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-md ${sys.status === 'Online' || sys.status === 'Synced' ? 'bg-green-500/10 text-green-400' : 'bg-blue-500/10 text-[#38bdf8]'}`}>
+                  <div className={`p-2 rounded-md ${sys.status === 'Online' || sys.status === 'Synced' ? 'bg-green-500/10 text-green-400' : 'bg-red-500/10 text-red-500'}`}>
                     <sys.icon className="w-4 h-4" />
                   </div>
                   <div>
                     <p className="text-sm font-medium text-slate-200">{sys.name}</p>
-                    <p className="text-xs text-slate-500">{sys.latency}</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${sys.status === 'Online' || sys.status === 'Synced' ? 'bg-green-500' : 'bg-[#38bdf8] animate-pulse'}`}></div>
+                  <div className={`w-2 h-2 rounded-full ${sys.status === 'Online' || sys.status === 'Synced' ? 'bg-green-500' : 'bg-red-500 animate-pulse'}`}></div>
                   <span className="text-xs font-medium text-slate-300">{sys.status}</span>
                 </div>
               </div>
@@ -128,11 +163,8 @@ export default function Dashboard() {
           </div>
 
           <div className="mt-6 p-4 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-center">
-            <h4 className="text-sm font-medium text-indigo-300 mb-1">MITRE ATT&CK Matrix Update</h4>
-            <p className="text-xs text-slate-400 mb-3">Version 14.1 successfully synchronized.</p>
-            <button className="text-xs font-semibold text-white bg-indigo-500 hover:bg-indigo-600 px-3 py-1.5 rounded transition-colors w-full">
-              View Framework
-            </button>
+            <h4 className="text-sm font-medium text-indigo-300 mb-1">Backend Connectivity</h4>
+            <p className="text-xs text-slate-400 mb-3">{loading ? 'Checking status...' : (healthStatus ? 'API Connected successfully.' : 'API Unreachable.')}</p>
           </div>
         </div>
       </div>
