@@ -2,7 +2,7 @@ import logging
 import httpx
 from sqlalchemy.orm import Session
 from app.config import settings
-from app.repositories.investigation import investigation_service
+from app.repositories.investigation import investigation_repo
 from app.repositories.observation import observation_repo
 from app.repositories.attack_technique import attack_technique_repo
 
@@ -14,7 +14,7 @@ class AIEngine:
         self.model = settings.OLLAMA_MODEL
 
     async def generate_investigation_summary(self, db: Session, investigation_id: int):
-        investigation = investigation_service.get(db, id=investigation_id)
+        investigation = investigation_repo.get(db, id=investigation_id)
         if not investigation:
             raise ValueError("Investigation not found")
 

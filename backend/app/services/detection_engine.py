@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from app.models.domain import DetectionAlert, NetworkEvent, Observation
 from app.schemas.detection_alert import DetectionAlertCreate
-from app.services.base import ServiceBase
+from app.services.base import BaseService
 
-class DetectionEngineService(ServiceBase[DetectionAlert, DetectionAlertCreate, DetectionAlertCreate]):
+class DetectionEngineService(BaseService[DetectionAlert, DetectionAlertCreate, DetectionAlertCreate]):
     
     def run_detection(self, db: Session, investigation_id: int) -> List[DetectionAlert]:
         alerts = []

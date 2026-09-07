@@ -19,3 +19,4 @@ sample-data/
 *.pcap
 .vscode/
 .idea/
+node_modules

@@ -3,9 +3,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import asc
 from app.models.domain import TimelineEvent, NetworkEvent, Observation, DetectionAlert
 from app.schemas.timeline import TimelineEventCreate
-from app.services.base import ServiceBase
+from app.services.base import BaseService
 
-class TimelineEngineService(ServiceBase[TimelineEvent, TimelineEventCreate, TimelineEventCreate]):
+class TimelineEngineService(BaseService[TimelineEvent, TimelineEventCreate, TimelineEventCreate]):
     
     def generate_timeline(self, db: Session, investigation_id: int) -> List[TimelineEvent]:
         # Delete existing timeline events for this investigation

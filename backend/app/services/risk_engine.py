@@ -7,7 +7,7 @@ from app.repositories.threat_intel import threat_intel_repo
 from app.repositories.attack_technique import attack_technique_repo
 from app.repositories.risk_assessment import risk_assessment_repo
 from app.schemas.risk_assessment import RiskAssessmentCreate
-from app.repositories.investigation import investigation_service
+from app.services.investigation import investigation_service
 from app.schemas.investigation import InvestigationUpdate
 
 logger = logging.getLogger(__name__)
