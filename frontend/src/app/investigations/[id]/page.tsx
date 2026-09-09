@@ -37,7 +37,7 @@ export default function InvestigationDetailsPage({ params }: { params: { id: str
                 <h4 className="text-sm font-bold text-slate-200">Execution Blocked</h4>
                 <p className="text-xs text-slate-500 mb-2">12:45 PM by Sentinel Agent</p>
                 <div className="bg-slate-900 border border-slate-800 p-3 rounded-lg text-xs font-mono text-pink-400">
-                  <span className="text-slate-500">C:\Users\Admin> </span>
+                  <span className="text-slate-500">C:\Users\Admin&gt; </span>
                   powershell.exe -enc JABzAD0ATgBlAHcALQBPAGIAagBlAGMAdAAgAEkATwAuAE0AZQBtAG8AcgB5AFMAdAByAGUAYQBtACg...
                 </div>
               </div>
