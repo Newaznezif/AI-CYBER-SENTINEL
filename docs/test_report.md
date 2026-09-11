@@ -1,45 +1,38 @@
-# Test Report: AI-Cyber Sentinel Backend Validation
+# AI-Cyber Sentinel Test Report
 
-## Component: Backend Core Services & API
-* **Status**: PASS
-* **Implementation**: Validated `fastapi` module execution. Fixed severe import resolution errors across `ai_engine.py`, `risk_engine.py`, `detection_engine.py`, and `timeline_engine.py` wherein `ServiceBase` and `investigation_service` were incorrectly targeted.
-* **Integration**: Python module structure successfully verified via CLI test script (`from app.main import app`). 
-* **Test Performed**: Live TestClient initialization and `/api/v1/system-health` querying. Core dependencies like `python-multipart` identified as missing and patched successfully into `requirements.txt`.
-* **Result**: `FastAPI` instance mounts correctly. Health check responds with `HTTP 200 OK`.
-* **Known Limitations**: N/A
-* **Dependencies**: PostgreSQL, Ollama.
+**Execution Date:** 2026-09-09
+**Commit Base:** `4759370`
 
-## Component: Database Introspection & Migrations
-* **Status**: PASS
-* **Implementation**: Investigated SQLAlchemy database connection string parsing pointing to `ai_cyber_sentinel` PostgreSQL structure.
-* **Integration**: Added `python-multipart` and ran custom PostgreSQL Database generation script, allowing the `alembic` setup to correctly mount the dialect.
-* **Test Performed**: Live SQL querying for DB initialisation, followed by `alembic upgrade head` migration trace logic mapping correctly to `app.models`.
-* **Result**: Auto-generated initial revision mapping for schemas, populated SQL mappings.
-* **Known Limitations**: N/A
-* **Dependencies**: PostgreSQL, `psycopg2`.
+## Core Infrastructure
 
-## Component: Mock Endpoints & Threat Intel Settings
-* **Status**: PASS
-* **Implementation**: Systematically scanned `/backend/app/` for mocked hardcoded endpoint strings. Detected and deactivated `MOCK_CTI` in `config.py` environment toggles.
-* **Integration**: Ensured no API components artificially construct AI responses or threat intelligence artifacts.
-* **Test Performed**: Thorough regular expression scanning (`TODO`, `mock`, `placeholder`, `fake`, etc.).
-* **Result**: No backend routes disguise false outputs as real functionality in production scope.
+| Component | Status | Notes | Evidence |
+|-----------|--------|-------|----------|
+| Next.js Frontend | **PASS** | Deploys on port 3000. UI handles empty API data gracefully and avoids Hydration crashes. | Browser testing confirmed offline rendering on `/investigations`, `/alerts`, `/intelligence`. |
+| FastAPI Backend | **PASS** | Uvicorn successfully binds to port 8000 once `psycopg2-binary`, `pydantic-settings`, and `scapy` dependencies are matched. | Terminal Execution |
+| PostgreSQL DB | **BLOCKED** | No local instance running on port 5432. Docker is unavailable. | API DB bindings and `alembic upgrade head` return ConnectionRefused / 1. |
+| Ollama Engine | **BLOCKED** | Local host 11434 unreachable without Docker or Native executable. | Feature offline. |
 
-## Component: Frontend Integration (Dashboard, Investigations, Intelligence)
-* **Status**: PASS
-* **Implementation**: Conducted a full swap of `mockChartData`, `mockInvestigations`, and `mockIndicators` embedded directly into Next.js React templates. 
-* **Integration**: Created unified `fetch` wrappers mapped directly to `useClient` hooks matching the standard REST `http://127.0.0.1:8000/api/v1` namespace format for core pipelines. Implemented visual fallback statuses for `Loading`, `Success`, `Error`, `Retry`.
-* **Test Performed**: Validated dynamic state ingestion mapping to the generic `IndicatorResponse` & `InvestigationResponse`.
-* **Result**: Verified. Dynamic content securely reflects DB metrics via background tasks without hanging.
-* **Known Limitations**: N/A
-* **Dependencies**: Backend FastAPI instance.
+## Feature End-To-End (E2E) Workflows
 
-## Component: Unit Tests & End-to-End Environment Tests
-* **Status**: BLOCKED
-* **Implementation**: Attempted extensive suite via internal `pytest` invocations.
-* **Integration**: Isolated dependency.
-* **Test Performed**: `$ pytest -v` pipeline test mapping.
-* **Result**: The local machine environment contains an OS-level WMI suspension bug originating inside Python 3.13 WMI subsystem queries (`_wmi_query`). `platform.win32_ver()` hangs indefinitely, stalling testing pipelines and forcing external keyboard interruptions.
-* **Evidence**: Live console stdout capture confirming OS-layer blockage.
-* **Known Limitations**: Test suite must be verified using different local environment structures. All logic code runs flawlessly without utilizing `platform` dependencies directly inside the FastAPI thread.
-* **Dependencies**: Native OS process scheduling / WMI Windows instrumentation core.
+> **NOTE:** Real end-to-end functionality could not be designated as **PASS** because the core repository for storing intelligence and investigations (PostgreSQL) is offline.
+
+### Investigations & Cases
+**Status:** **FAIL**
+- **Findings:** Global Dashboard and Route `/investigations` both fetch from `http://127.0.0.1:8000/api/v1/investigations`. They gracefully fall back to zero states, but no cases can be created.
+
+### Indicator Extraction & Threat Intel
+**Status:** **FAIL**
+- **Findings:** CTI API fetches fail with connection drops since the Threat correlation DB is unreachable. The Frontend properly alerts "No Active Alerts" instead of crashing.
+
+### PCAP / Evidence Analysis (Zeek & Suricata)
+**Status:** **BLOCKED**
+- **Findings:** Suricata and Zeek are missing from the host OS (Linux required native or deployed via Docker). Testing of `.pcap` uploads is blocked.
+
+### AI Incident Summarization (Ollama)
+**Status:** **BLOCKED**
+- **Findings:** Cannot send requests to the Ollama generative engine.
+
+## Actionable Solutions for Green Tests
+1. **Provide Database:** Initiate a local PostgreSQL 15+ DB on port `5432` with credentials `postgres/postgres`.
+2. **Execute Migrations:** Run `alembic upgrade head` once the target proxy drops.
+3. **Run AI Engine:** Boot Ollama running the designated `llama3` core locally.

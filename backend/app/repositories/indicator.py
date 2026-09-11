@@ -25,4 +25,7 @@ class IndicatorRepository(BaseRepository[Indicator, IndicatorCreate, IndicatorUp
         db.refresh(db_obj)
         return db_obj
 
+    def get_by_investigation(self, db: Session, investigation_id: int):
+        return db.query(self.model).filter(self.model.investigation_id == investigation_id).all()
+
 indicator_repo = IndicatorRepository(Indicator)

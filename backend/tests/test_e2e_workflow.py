@@ -34,7 +34,12 @@ def setup_database():
     Base.metadata.create_all(bind=engine)
     yield
     Base.metadata.drop_all(bind=engine)
-    os.remove("./e2e_test.db")
+    engine.dispose()
+    if os.path.exists("./e2e_test.db"):
+        try:
+            os.remove("./e2e_test.db")
+        except OSError:
+            pass
 
 def test_full_investigation_workflow():
     # 1. Create an investigation

@@ -5,11 +5,29 @@ import json
 from datetime import datetime
 from typing import Dict, Any, List, Tuple
 
+import shutil
+
+def get_suricata_binary() -> str | None:
+    if os.name == "nt":
+        npcap_path = r"C:\Windows\System32\Npcap"
+        suricata_dir = r"C:\Program Files\Suricata"
+        current_path = os.environ.get("PATH", "")
+        if npcap_path not in current_path and os.path.exists(npcap_path):
+            os.environ["PATH"] = f"{npcap_path};{suricata_dir};{current_path}"
+
+    cmd = shutil.which("suricata")
+    if not cmd and os.name == "nt" and os.path.exists(r"C:\Program Files\Suricata\suricata.exe"):
+        cmd = r"C:\Program Files\Suricata\suricata.exe"
+    return cmd
+
 def check_suricata_availability() -> bool:
+    cmd = get_suricata_binary()
+    if not cmd:
+        return False
     try:
-        subprocess.run(["suricata", "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return True
-    except FileNotFoundError:
+        res = subprocess.run([cmd, "-V"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        return res.returncode == 0
+    except (FileNotFoundError, OSError):
         return False
 
 def parse_eve_json(filepath: str, investigation_id: int) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
@@ -103,11 +121,12 @@ def process_pcap(filepath: str, investigation_id: int) -> Tuple[bool, List[Dict[
     events = []
     original_cwd = os.getcwd()
     
+    cmd = get_suricata_binary() or "suricata"
     with tempfile.TemporaryDirectory() as temp_dir:
         os.chdir(temp_dir)
         try:
             # Execute Suricata locally reading the PCAP offline payload
-            subprocess.run(["suricata", "-r", filepath, "-l", temp_dir, "-k", "none"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            subprocess.run([cmd, "-r", filepath, "-l", temp_dir, "-k", "none"], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             eve_path = os.path.join(temp_dir, "eve.json")
             alerts, events = parse_eve_json(eve_path, investigation_id)
         except Exception as e:

@@ -49,7 +49,7 @@ class MitreValidatorService:
                         tactic=tactic,
                         confidence=obs.confidence,
                         status="VALIDATED" if obs.confidence > 0.8 else "CANDIDATE",
-                        supporting_evidence=[obs.id]
+                        supporting_evidence=[{"observation_id": obs.id, "observation_type": obs.observation_type}]
                     )
                     attack_technique_repo.create(db, obj_in=new_ttp)
                     created_techniques += 1
